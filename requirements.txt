@@ -1,0 +1,19 @@
+# Pinned to Airflow 3.0.2 and its matching provider releases so the DAG parses
+# and runs on one scheduler without a dependency conflict.
+apache-airflow==3.0.2
+apache-airflow-core==3.0.2
+apache-airflow-task-sdk==1.0.2
+apache-airflow-providers-standard==1.2.0
+apache-airflow-providers-common-sql==1.27.1
+apache-airflow-providers-postgres==6.1.2
+apache-airflow-providers-amazon==9.9.0
+
+# kafka-python>=3.0, NOT kafka-python-ng: the -ng fork's KafkaProducer rejects
+# `enable_idempotence` at construction ("Unrecognized configs"), and the
+# requirements (§3) mandate idempotent producer behaviour.
+kafka-python==3.0.11
+psycopg2-binary==2.9.12
+requests==2.32.3
+pendulum==3.0.0
+
+pytest==9.1.1
