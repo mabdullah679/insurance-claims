@@ -8,10 +8,17 @@
 set -uo pipefail
 
 cd "$(dirname "$0")/.."
-# shellcheck disable=SC1091
-source demo/env.sh
 PY=.venv/bin/python
 DATE=2026-09-11
+
+if [ ! -x "$PY" ]; then
+  echo "No Python environment found. Run ./demo/setup.sh first -- it builds"
+  echo "the virtual environment and prepares the demo data."
+  exit 1
+fi
+
+# shellcheck disable=SC1091
+source demo/env.sh
 
 echo "============================================================"
 echo " Running the pipeline for $DATE"

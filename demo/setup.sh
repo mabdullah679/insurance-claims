@@ -13,9 +13,32 @@ cd "$(dirname "$0")/.."
 SCENARIO="${1:-happy}"
 PY=.venv/bin/python
 
+echo "=== 0. Python environment ==="
+# Build the virtual environment if it is not already there, so this script
+# works on a freshly cloned repository with no prior setup.
+if [ ! -x "$PY" ]; then
+  PY312="$(command -v python3.12 || true)"
+  if [ -z "$PY312" ]; then
+    echo "  Python 3.12 is required and was not found on PATH."
+    echo "  Airflow 3.0.2 does not support Python 3.13 yet."
+    echo "    macOS:  brew install python@3.12"
+    echo "    Ubuntu: sudo apt install python3.12 python3.12-venv"
+    exit 1
+  fi
+  echo "  creating .venv with $("$PY312" --version)"
+  "$PY312" -m venv .venv
+  echo "  installing dependencies (a few minutes the first time)..."
+  .venv/bin/pip install -q --upgrade pip
+  .venv/bin/pip install -q -r requirements.txt
+  echo "  done"
+else
+  echo "  .venv already present"
+fi
+
 # shellcheck disable=SC1091
 source demo/env.sh
 
+echo
 echo "=== 1. Waiting for the demo stack ==="
 for svc in claimsdemo-minio claimsdemo-postgres claimsdemo-kafka claimsdemo-policy-api; do
   printf "  %-28s" "$svc"
@@ -103,6 +126,18 @@ s3 = boto3.client("s3", endpoint_url=os.environ["CLAIMS_S3_ENDPOINT"],
                   aws_secret_access_key="claimsdemo123",
                   region_name="us-east-1")
 bucket, key = os.environ["CLAIMS_S3_BUCKET"], "inbound/claims_20260911.csv"
+
+# Clear the previous run's outputs, so what you see after ./demo/run.sh is
+# this run's work and not a mix of several. The pipeline itself overwrites
+# per-date keys on a re-run; this is only to keep the demo legible when
+# switching between the happy and rejects scenarios.
+for prefix in ("errors/", "archive/"):
+    old = s3.list_objects_v2(Bucket=bucket, Prefix=prefix).get("Contents", [])
+    for obj in old:
+        s3.delete_object(Bucket=bucket, Key=obj["Key"])
+    if old:
+        print(f"  cleared {len(old)} object(s) under {prefix}")
+
 body = open(fixture, "rb").read()
 s3.put_object(Bucket=bucket, Key=key, Body=body)
 rows = len(body.decode().strip().splitlines()) - 1

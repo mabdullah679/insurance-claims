@@ -12,8 +12,19 @@ apache-airflow-providers-amazon==9.9.0
 # `enable_idempotence` at construction ("Unrecognized configs"), and the
 # requirements (§3) mandate idempotent producer behaviour.
 kafka-python==3.0.11
+# boto3 arrives with the Amazon provider, but the demo scripts import it
+# directly, so pin it rather than rely on a transitive dependency.
+boto3==1.43.98
 psycopg2-binary==2.9.12
 requests==2.32.3
 pendulum==3.0.0
+
+# Airflow 3.0.2's execution API is built against these three. Without the
+# pins, a fresh install resolves to newer releases and every task dies with
+# "Input should be a valid dictionary or object to extract fields from" when
+# the SDK talks to the execution server. Airflow itself does not cap them.
+pydantic==2.11.5
+fastapi==0.115.12
+httpx==0.27.0
 
 pytest==9.1.1

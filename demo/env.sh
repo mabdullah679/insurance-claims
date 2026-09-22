@@ -60,5 +60,9 @@ export CLAIMS_SLA_MINUTES=90
 # uses its documented placeholder scorer and says so loudly in the logs. That
 # is the one outstanding item awaiting the client's scoring rules.
 
+# Library deprecation notices from Airflow's own dependencies are noise during
+# a walkthrough and say nothing about the pipeline. Silence them here only.
+export PYTHONWARNINGS=ignore
+
 export PATH="$_PROJECT_DIR/.venv/bin:$PATH"
 unset _demo_src _DEMO_DIR _PROJECT_DIR
