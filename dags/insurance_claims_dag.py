@@ -317,8 +317,17 @@ with DAG(
         staging = Staging(ROOT, day)
         rows = staging.read_all_rejections()
         if not rows:
+            # Record the zero explicitly. Reconciliation checks the count this
+            # task REPORTED against the count that was rejected, so "nothing
+            # to store" has to be an answer rather than an absent metric --
+            # otherwise a clean day and a day where this task never ran look
+            # identical to the reconciler.
             log.info("no rejected claims for %s", day)
-            return {"stored": 0, "key": None}
+            staging.write_metrics("rejections", {"stored": 0, "key": ""})
+            # "" rather than None: Airflow 3's XCom API rejects the payload
+            # when a value is null, and an empty string reads the same way to
+            # every consumer here.
+            return {"stored": 0, "key": ""}
 
         key = cfg.s3.error_key(day.strftime("%Y%m%d"))
         stored = S3Gateway(cfg.s3).write_rejections(key, rows)

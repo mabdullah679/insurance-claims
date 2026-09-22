@@ -8,6 +8,9 @@ venv/
 # Run-time staging written by the DAG (data/staging/dt=YYYY-MM-DD/...)
 data/
 
+# Local Airflow home created by the demo stack (SQLite DB, logs, config)
+demo/airflow/
+
 # Local environment and secrets
 .env
 .env.*

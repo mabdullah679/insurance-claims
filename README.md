@@ -27,6 +27,21 @@ simulated.
 It lists what is finished, what is not, and the one thing still blocked on
 your side.
 
+### See it actually run
+
+To watch a claim travel end to end — S3 to Kafka, with a real database and a
+real broker — there is a throwaway local stack in [demo/](demo/README.md):
+
+```bash
+docker compose -f demo/docker-compose.yml up -d
+./demo/setup.sh
+./demo/run.sh
+```
+
+It prints what each step did, the claims that reached Kafka, the rejected ones
+with their reasons, the daily summary row, and whether the input file was
+archived. `./demo/setup.sh rejects` shows the rejection path.
+
 ---
 
 ## What happens each morning

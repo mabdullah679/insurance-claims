@@ -1,0 +1,90 @@
+# Local demo stack: stand-ins for the four systems the pipeline talks to.
+#
+# Everything here is throwaway. Ports are deliberately unusual (1xxxx) so this
+# cannot collide with anything else already running on the machine, and every
+# container is namespaced `claimsdemo-`.
+#
+#   MinIO      -> the S3 inbound / error / archive bucket
+#   PostgreSQL -> the customer table and the daily summary table
+#   Kafka      -> insurance.claims.processed
+#   policy-api -> a tiny stub standing in for the client's REST API
+#
+# Start:  docker compose -f demo/docker-compose.yml up -d
+# Stop:   docker compose -f demo/docker-compose.yml down -v
+
+name: claimsdemo
+
+services:
+  minio:
+    # quay.io, not docker.io: the Docker Hub mirror of MinIO is access-denied
+    # for anonymous pulls. This is the project's own registry.
+    image: quay.io/minio/minio:latest
+    container_name: claimsdemo-minio
+    command: server /data --console-address ":19001"
+    environment:
+      MINIO_ROOT_USER: claimsdemo
+      MINIO_ROOT_PASSWORD: claimsdemo123
+    ports:
+      - "19000:9000"      # S3 API
+      - "19001:19001"     # web console, handy during a demo
+    healthcheck:
+      test: ["CMD", "mc", "ready", "local"]
+      interval: 3s
+      timeout: 3s
+      retries: 20
+
+  postgres:
+    image: postgres:16-alpine
+    container_name: claimsdemo-postgres
+    environment:
+      POSTGRES_USER: claims
+      POSTGRES_PASSWORD: claims
+      POSTGRES_DB: claims
+    ports:
+      - "15432:5432"
+    volumes:
+      - ./sql/seed.sql:/docker-entrypoint-initdb.d/seed.sql:ro
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U claims -d claims"]
+      interval: 3s
+      timeout: 3s
+      retries: 20
+
+  kafka:
+    image: apache/kafka:3.9.0
+    container_name: claimsdemo-kafka
+    ports:
+      - "19092:19092"
+    environment:
+      KAFKA_NODE_ID: 1
+      KAFKA_PROCESS_ROLES: broker,controller
+      KAFKA_CONTROLLER_QUORUM_VOTERS: 1@localhost:19093
+      KAFKA_LISTENERS: PLAINTEXT://:19092,CONTROLLER://:19093
+      KAFKA_ADVERTISED_LISTENERS: PLAINTEXT://localhost:19092
+      KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: PLAINTEXT:PLAINTEXT,CONTROLLER:PLAINTEXT
+      KAFKA_CONTROLLER_LISTENER_NAMES: CONTROLLER
+      KAFKA_INTER_BROKER_LISTENER_NAME: PLAINTEXT
+      KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 1
+      KAFKA_TRANSACTION_STATE_LOG_REPLICATION_FACTOR: 1
+      KAFKA_TRANSACTION_STATE_LOG_MIN_ISR: 1
+      KAFKA_AUTO_CREATE_TOPICS_ENABLE: "true"
+    healthcheck:
+      test: ["CMD-SHELL", "/opt/kafka/bin/kafka-topics.sh --bootstrap-server localhost:19092 --list || exit 1"]
+      interval: 5s
+      timeout: 5s
+      retries: 20
+
+  policy-api:
+    image: python:3.12-slim
+    container_name: claimsdemo-policy-api
+    working_dir: /app
+    command: python /app/policy_api.py
+    ports:
+      - "18000:8000"
+    volumes:
+      - ./policy_api.py:/app/policy_api.py:ro
+    healthcheck:
+      test: ["CMD-SHELL", "python -c \"import urllib.request;urllib.request.urlopen('http://localhost:8000/health')\""]
+      interval: 3s
+      timeout: 3s
+      retries: 20
