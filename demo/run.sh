@@ -20,6 +20,11 @@ fi
 # shellcheck disable=SC1091
 source demo/env.sh
 
+# Written inside demo/airflow/, which is gitignored, rather than scattering
+# files in /tmp. Must come AFTER env.sh, which defines AIRFLOW_HOME.
+RUN_LOG="$AIRFLOW_HOME/last-run.log"
+mkdir -p "$AIRFLOW_HOME"
+
 echo "============================================================"
 echo " Running the pipeline for $DATE"
 echo "============================================================"
@@ -48,10 +53,10 @@ airflow db migrate >/dev/null 2>&1
 airflow dags reserialize >/dev/null 2>&1
 
 airflow dags test daily_insurance_claims_processing \
-  --conf "{\"processing_date\": \"$DATE\"}" >/tmp/claims_demo_run.log 2>&1
+  --conf "{\"processing_date\": \"$DATE\"}" >"$RUN_LOG" 2>&1
 
 echo "--- what each step did -------------------------------------"
-sed 's/\x1b\[[0-9;]*m//g' /tmp/claims_demo_run.log \
+sed 's/\x1b\[[0-9;]*m//g' "$RUN_LOG" \
   | grep -aoE "(insurance_claims_dag|kafka_publish|summary|gateways)\.py:[0-9]+\} (INFO|WARNING) - .*" \
   | sed -E 's/^[a-z_]+\.py:[0-9]+\} (INFO|WARNING) - /  /' \
   | grep -vE "^\s*$" | head -20
@@ -137,4 +142,4 @@ for prefix, label in [("inbound/", "still in inbound"), ("archive/", "archived")
 PY
 
 echo
-echo "Full log: /tmp/claims_demo_run.log"
+echo "Full log: $RUN_LOG"

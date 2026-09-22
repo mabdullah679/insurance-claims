@@ -1,21 +1,49 @@
 # Python
 __pycache__/
 *.py[cod]
+*.egg-info/
 .pytest_cache/
+.coverage
+.coverage.*
+htmlcov/
+.mypy_cache/
+.ruff_cache/
 .venv/
 venv/
+env/
 
 # Run-time staging written by the DAG (data/staging/dt=YYYY-MM-DD/...)
 data/
 
-# Local Airflow home created by the demo stack (SQLite DB, logs, config)
+# Local Airflow home created by the demo stack (SQLite DB, logs, config).
+# demo/ itself IS tracked -- only the runtime directory it creates is not.
 demo/airflow/
 
-# Local environment and secrets
+# Airflow runtime artefacts, wherever they land
+airflow.db
+airflow.cfg
+airflow-webserver.pid
+webserver_config.py
+logs/
+*.log
+
+# Local databases
+*.sqlite
+*.sqlite3
+*.db-journal
+
+# Local environment and secrets. Never commit a real credential:
+# the pipeline resolves them through Airflow connections.
 .env
 .env.*
+*.pem
+*.key
+credentials.json
 
 # OS / editor
 .DS_Store
+Thumbs.db
 .idea/
 .vscode/
+*.swp
+*~
