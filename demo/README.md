@@ -92,7 +92,7 @@ re-run once the problem is fixed.
   folder with a plain-English reason for a data quality analyst to review.
 - The daily summary table is the single number to trust: input, successful,
   rejected, and how many Kafka confirmed.
-- Notifications are already addressed to the right audiences — operations on
+- Notifications are already addressed to the right audiences (the default notifier only writes them to the task log; no Slack/email sender is wired) — operations on
   success, operations and data quality on rejections, engineering on failure.
 
 **For engineers**
